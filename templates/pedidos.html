@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meus Pedidos | Loja de Cupcakes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>🧁 Meus Pedidos</h1>
+        <p>Acompanhe suas compras na nossa loja!</p>
+    </header>
+
+    <main>
+        <section class="carrinho">
+            {% if pedidos %}
+                {% for pedido in pedidos %}
+                    <article class="item-carrinho">
+                        <div>
+                            <h3>Pedido #{{ pedido["id"] }}</h3>
+                            <p>Data: {{ pedido["criado_em"] }}</p>
+                            <p>Pagamento: {{ pedido["forma_pagamento"] }}</p>
+                            <p>Status: {{ pedido["status"] }}</p>
+                            <strong>
+                                Total: R$ {{ "%.2f"|format(pedido["total_centavos"] / 100)|replace(".", ",") }}
+                            </strong>
+                        </div>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <p>Você ainda não realizou nenhum pedido.</p>
+            {% endif %}
+
+            <p><a href="{{ url_for('pagina_inicial') }}">Voltar à loja</a></p>
+        </section>
+    </main>
+</body>
+</html>
