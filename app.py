@@ -118,34 +118,65 @@ def pagina_inicial():
     return render_template("index.html")
 
 
+
 @app.route("/cadastro", methods=["GET", "POST"])
 def cadastro():
     if request.method == "POST":
         nome = request.form.get("nome", "").strip()
         email = request.form.get("email", "").strip().lower()
         senha = request.form.get("senha", "")
+        confirmar_senha = request.form.get("confirmar_senha", "")
 
-        if not nome or not email or len(senha) < 8:
-            flash("Preencha os dados e use uma senha de pelo menos 8 caracteres.")
-            return render_template("cadastro.html")
+        dados_formulario = {
+            "nome": nome,
+            "email": email
+        }
+
+        if not nome:
+            flash("Informe seu nome completo.")
+            return render_template("cadastro.html", **dados_formulario)
+
+        if not email or "@" not in email or "." not in email.split("@")[-1]:
+            flash("Informe um e-mail válido.")
+            return render_template("cadastro.html", **dados_formulario)
+
+        if len(senha) < 8:
+            flash("A senha deve conter pelo menos 8 caracteres.")
+            return render_template("cadastro.html", **dados_formulario)
+
+        if senha != confirmar_senha:
+            flash("As senhas informadas não coincidem.")
+            return render_template("cadastro.html", **dados_formulario)
 
         senha_protegida = generate_password_hash(senha)
 
         try:
             with conectar_banco() as conexao:
-                conexao.execute(
-                    """INSERT INTO usuarios (nome, email, senha, tipo)
-                       VALUES (?, ?, ?, 'cliente')""",
+                cursor = conexao.execute(
+                    """
+                    INSERT INTO usuarios (nome, email, senha, tipo)
+                    VALUES (?, ?, ?, 'cliente')
+                    """,
                     (nome, email, senha_protegida)
                 )
-        except sqlite3.IntegrityError:
-            flash("Este e-mail já está cadastrado.")
-            return render_template("cadastro.html")
 
-        flash("Cadastro realizado com sucesso! Faça seu login.")
-        return redirect(url_for("login"))
+                novo_usuario_id = cursor.lastrowid
+
+        except sqlite3.IntegrityError:
+            flash("Este e-mail já está cadastrado. Faça login ou utilize outro e-mail.")
+            return render_template("cadastro.html", **dados_formulario)
+
+        # Autentica automaticamente o cliente recém-cadastrado.
+        session.clear()
+        session["usuario_id"] = novo_usuario_id
+        session["usuario_nome"] = nome
+        session["usuario_tipo"] = "cliente"
+
+        flash("Conta criada com sucesso! Bem-vindo à Loja de Cupcakes.")
+        return redirect(url_for("pagina_inicial"))
 
     return render_template("cadastro.html")
+
 
 
 @app.route("/login", methods=["GET", "POST"])
